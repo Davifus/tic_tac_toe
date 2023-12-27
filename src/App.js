@@ -1,36 +1,37 @@
-import { useState } from "react";
+import { useState } from 'react';
 
-export default function Board() {
-  //export keyword = lets the function be accessible outside of this file
-  //default keyword = makes the function the main function of the file
-  const [xIsNext, setXIsNext] = useState(true);
-  const [squares, setSquares] = useState(Array(9).fill(null));
-  const winner = calWinner(squares);
+function Square({value, onSquareClick}) {
+  return (
+    <button className="square" onClick={onSquareClick}>
+      {value}
+    </button>
+  );
+}
 
-  let status;
-  if (winner) {
-    status = "Winner: " + winner;
-  } else {
-    status = "Next Player: " + (xIsNext ? "X" : "O");
-  }
-
+function Board({ xIsNext, squares, onPlay }) {
   function handleClick(i) {
-    if (squares[i] || calWinner(squares)) {
-      //this check if the box has a X or O already
+    if (calculateWinner(squares) || squares[i]) {
       return;
     }
-    const nextSquare = squares.slice();
+    const nextSquares = squares.slice();
     if (xIsNext) {
-      nextSquare[i] = "X";
+      nextSquares[i] = 'X';
     } else {
-      nextSquare[i] = "O";
+      nextSquares[i] = 'O';
     }
-    setSquares(nextSquare);
-    setXIsNext(!xIsNext);
+    onPlay(nextSquares);
   }
+
+  const winner = calculateWinner(squares);
+  let status;
+  if (winner) {
+    status = 'Winner: ' + winner;
+  } else {
+    status = 'Next player: ' + (xIsNext ? 'X' : 'O');
+  }
+
   return (
     <>
-      <h1>Tic Tac Toe</h1>
       <div className="status">{status}</div>
       <div className="board-row">
         <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
@@ -50,19 +51,51 @@ export default function Board() {
     </>
   );
 }
-//click on the square and return it with X or O
-function Square({ value, onSquareClick }) {
+
+export default function Game() {
+  const [history, setHistory] = useState([Array(9).fill(null)]);
+  const [currentMove, setCurrentMove] = useState(0);
+  const currentSquares = history[currentMove];
+  const xIsNext = currentMove % 2 === 0;
+
+  function handlePlay(nextSquares) {
+    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+    setHistory(nextHistory);
+    setCurrentMove(nextHistory.length - 1);
+  }
+
+  function jumpTo(nextMove) {
+    setCurrentMove(nextMove);
+  }
+
+  const moves = history.map((squares, move) => {
+    let description;
+    if (move > 0) {
+      description = 'Go to move #' + move;
+    } else {
+      description = 'Go to game start';
+    }
+    return (
+      <li key={move}>
+        <button onClick={() => jumpTo(move)}>{description}</button>
+      </li>
+    );
+  });
+
   return (
-    <button className="square" onClick={onSquareClick}>
-      {value}
-    </button>
+    <div className="game">
+      <div className="game-board">
+        <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+      </div>
+      <div className="game-info">
+        <ol>{moves}</ol>
+      </div>
+    </div>
   );
 }
 
-//calculate if the combination is the correct one
-function calWinner(squares) {
+function calculateWinner(squares) {
   const lines = [
-    //winning combinations
     [0, 1, 2],
     [3, 4, 5],
     [6, 7, 8],
